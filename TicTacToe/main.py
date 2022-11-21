@@ -1,5 +1,6 @@
 import tkinter as tk
 import numpy as np
+
 from PIL import ImageTk, Image
 from random import randint
 from time import sleep
@@ -27,8 +28,14 @@ class BoardSlot:
         self.enterBinding = self.button.bind("<Enter>", self.on_enter)
         self.leaveBinding = self.button.bind("<Leave>", self.on_leave)
 
+    def disconnect_bindings(self, all=False):
+        self.button.unbind("<Button-1>")
+        if (all):
+            self.button.unbind("<Enter>")
+            self.button.unbind("<Leave>")
+
     def on_click(self, e):
-        self.button.unbind("<Button-1>", self.clickBinding)
+        self.disconnect_bindings()
         self.sign = self.slot_clicked_method()
         self.init_images()
         self.button.config(image=self.normalImg)
@@ -41,15 +48,15 @@ class BoardSlot:
         self.button.config(image=self.normalImg)
 
     def validate(self):
-        self.button.unbind("<Enter>", self.enterBinding)
-        self.button.unbind("<Leave>", self.leaveBinding)
+        self.disconnect_bindings(True)
         self.button.config(image=self.validatedImg)
 
 # Inheritance from Tk
 class App(tk.Tk):
-    def __init__(self, size:int=500)->None:
+    def __init__(self, width:int=500, height:int=600)->None:
         super().__init__()
-        self.size = size
+        self.width = width
+        self.height = height
         self.turn = 0
 
         self.setup_window()
@@ -58,10 +65,10 @@ class App(tk.Tk):
     # Setup window's properties
     def setup_window(self):
         self.title("Tic Tac Toe")
-        self.geometry(f"{self.size}x{self.size}")
+        self.geometry(f"{self.width}x{self.height}")
 
     def init_game(self):
-        self.menu_frame = tk.Frame(self, width=self.size, height=self.size, bg="White")
+        self.menu_frame = tk.Frame(self, width=self.width, height=self.height, bg="White")
         self.title_label = tk.Label(self.menu_frame, text="Welcome to Tic Tac Toe!", font=("Arial Black", 25), bg="White")
         self.title_label.pack(pady=10)
         self.name1_label = tk.Label(self.menu_frame, bg="White", text="Player1: ")
@@ -74,33 +81,83 @@ class App(tk.Tk):
         self.name2_entry.pack(pady=5)
         self.second_player_ai_button = tk.Checkbutton(self.menu_frame, text="AI", font=("Arial", 18), bg="White")
         self.second_player_ai_button.pack(pady=10)
-        self.start_button = tk.Button(self.menu_frame, text="Start", bg="#0097e6", fg="#ffffff", width=8, height=1, font=("Arial", 18), command=self.start_game)
+        self.start_button = tk.Button(self.menu_frame, text="Start", bg="#0097e6", fg="#ffffff", width=8, height=1, font=("Arial", 18), command=self.valid_data)
         self.start_button.pack(pady=10)
         self.menu_frame.pack()
 
-    def start_game(self):
+    def get_random_first_player(self):
+        return randint(0, 1)
+
+    def valid_data(self):
         self.p1_name = self.name1_entry.get()
         self.p2_name = self.name2_entry.get()
         if (self.p1_name == ""): self.p1_name = "Player 1"
         if (self.p2_name == ""): self.p2_name = "Player 2"
+        self.p1_score = 0
+        self.p2_score = 0
         self.menu_frame.pack_forget()
+        self.score_label = tk.Label(self, width=self.width, bg="#353b48", fg="#f5f6fa", font=("Arial Black", 20), text="SCORE")
+        self.update_score()
+        self.score_label.pack()
+        self.start_game()
+
+    def start_game(self):
+        if (self.get_random_first_player()):
+            self.p1_sign = "cross"
+            self.p2_sign = "circle"
+        else:
+            self.p1_sign = "circle"
+            self.p2_sign = "cross"
         self.board = self.generate_board()
+
+    def restart_game(self):
+        self.enable_restart_button(False)
+        self.game_state_label.pack_forget()
+        self.destroy_current_board()
+        self.start_game()
+
+    def enable_restart_button(self, enabled:bool=True):
+        if (enabled):
+            self.restart_button.pack(pady=5)
+        else:
+            self.restart_button.pack_forget()
+
+    def destroy_current_board(self):
+        self.board_frame.pack_forget()
+        self.board = None
+
+    def update_score(self):
+        self.score_label.config(text=f"{self.p1_name} : {self.p1_score} VS {self.p2_name} : {self.p2_score}")
 
     # Generate the game board
     def generate_board(self):
-        self.board_frame = tk.Frame(self, width=self.size, height=self.size, bg="White")
+        self.board_frame = tk.Frame(self, width=self.width, height=self.height, bg="White")
         board = [[BoardSlot(row, col, self.board_frame, self.slot_clicked, self.update_turn) for col in range(3)] for row in range(3)]
-        self.board_frame.pack(padx=10, pady=10)
+        self.board_frame.pack(padx=10, pady=20)
+        self.game_state_label = tk.Label(self, text=f"{self.getCurrentPlayerName()}'s turn!", fg="#f5f6fa", bg="#00a8ff", font=("Arial", 18))
+        self.game_state_label.pack()
+        self.restart_button = tk.Button(self, text="RESTART", font=("Arial Black", 20), fg="White", bg="#44bd32", command=self.restart_game)
         return board
 
     # Returns the current player's sign
     def getPlayerSign(self)->str:
-        return ["cross", "circle"][self.turn % 2]
+        return [self.p1_sign, self.p2_sign][self.turn % 2]
+
+    def getCurrentPlayerName(self)->str:
+        if (self.getPlayerSign() == self.p1_sign):
+            return self.p1_name
+        else:
+            return self.p2_name
 
     def validate_slot(self, slot:BoardSlot):
         slot.validate()
         self.update()
         sleep(0.2)
+
+    def disconnect_all_bindings(self):
+        for row in range(3):
+            for col in range(3):
+                self.board[row][col].disconnect_bindings()
 
     # Check the rows of the board in case a player won
     def checkRows(self, board:list):
@@ -109,6 +166,7 @@ class App(tk.Tk):
             for slot in row:
                 res.add(slot.sign)
             if(len(res)) == 1 and row[0].sign != "blank":
+                self.disconnect_all_bindings()
                 for i in range(3):
                     self.validate_slot(row[i])
                 return row[0].sign
@@ -118,11 +176,13 @@ class App(tk.Tk):
     def checkDiagonals(self):
         # From top left to bottom right
         if (len(set([self.board[i][i].sign for i in range(3)])) == 1 and self.board[0][0].sign != "blank"):
+            self.disconnect_all_bindings()
             for i in range(3):
                 self.validate_slot(self.board[i][i])
             return self.board[0][0].sign
         # From top right to bottom left
         if (len(set([self.board[i][3-i-1].sign for i in range(3)])) == 1 and self.board[0][3-1].sign != "blank"):
+            self.disconnect_all_bindings()
             for i in range(3):
                 self.validate_slot(self.board[i][3-i-1])
             return self.board[0][3-1].sign
@@ -147,13 +207,30 @@ class App(tk.Tk):
     def slot_clicked(self):
         return self.getPlayerSign()
     
-    def update_turn(self):
+    def next_turn(self):
         self.turn += 1
+        self.update_game_state(f"{self.getCurrentPlayerName()}'s turn!")
+
+    def update_game_state(self, text:str, bg:str="#00a8ff", font:tuple=("Arial", 18))->None:
+        self.game_state_label.config(text=text, font=font, bg=bg)
+
+    def update_turn(self):
         winner = self.checkWin()
         if (winner):
-            print(winner)
-        if (self.isBoardFull()):
-            print("DRAW")
+            if (winner == self.p1_sign):
+                self.update_game_state(f"--> {self.p1_name} WON! <--", "#e1b12c", ("Arial Black", 20))
+                self.p1_score += 1
+                self.update_score()
+            else:
+                self.update_game_state(f"--> {self.p2_name} WON! <--", "#e1b12c", ("Arial Black", 20))
+                self.p2_score += 1
+            self.update_score()
+            self.enable_restart_button(True)
+        elif (self.isBoardFull()):
+            self.update_game_state("--> DRAW <--", "#487eb0", ("Arial Black", 20))
+            self.enable_restart_button(True)
+        else:
+            self.next_turn()
 
 def main():
     app = App()
