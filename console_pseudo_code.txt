@@ -1,0 +1,83 @@
+DEBUT
+
+# Admettons la fonction input qui permet à un utilisateur d'entrer une valeur
+
+# Importer randint depuis random (permet de générer un nombre aléatoire)
+# Importer transpose depuis numpy (permet de transformer les lignes d'un tableau en colonnes et inversement)
+
+# Créer une classe TicTacToe
+    # Définir la méthode __init__ avec pour paramètre self
+        # Définir l'attribut board étant égal à generate_board()
+        # Définir l'attribut running comme True
+
+    # Définir la méthode generate_board avec pour paramètre self
+        # Définir par compréhension la variable board comme étant un tableau à double dimensions
+        # Retourner board
+
+    # Définir la méthode set_character avec pour paramètre self, row, col, char
+        # Si à la position indiquée par row et col dans le board est "_"
+            # Alors placer char dans la case indiquée
+
+    # Définir la méthode player_turn avec pour paramètre self, char
+        # Définir la variable xInput comme le résultat de la fonction input tel qu'un integer
+        # Définir la variable yInput comme le résultat de la fonction input tel qu'un integer
+        # Appeler la méthode set_character avec pour paramètre xInput, yInput, char
+
+    # Définir la méthode check_rows avec pour paramètre self, current_board
+        # Pour chaque ligne dans le current_board
+            # Si la longueur de l'ensemble généré à partir de la ligne est égal à 1 et que l'élément d'indice 0 de la ligne n'est pas égal à "_"
+                # Alors retourner l'élément 0 dans la ligne
+            # Sinon retourner 0
+
+    # Définir la méthode check_diagonals avec pour paramètre self
+        # Définir diagonale1 comme étant une liste comprénant les éléments d'indice i, i ; i étant définis par une boucle de portée 3
+        # Si la longueur de diagonale1 convertie en ensemble est égale à 1 et que l'élément du board d'indice 0, 0 est inégal à "_"
+            # Alors retourner l'élément d'indice 0, 0 de board
+        # Définir diagonale2 comme étant une liste comprénant les éléments d'indice i, 3-i-1 ; i étant définis par une boucle de portée 3
+        # Si la longueur de diagonale2 convertie en ensemble est égale à 1 et que l'élément du board d'indice 0, 2 est inégal à "_"
+            # Alors retourner l'élément d'indice 0, 2 de board
+        # Retourner 0
+
+    # Définir la méthode check_win avec pour paramètre self
+        # Définir une variable new_boards contenant board et le board transposé par la fonction transpose
+        # Pour chaque new_board dans new_boards
+            # Alors définir la variable result comme étant le résultat de l'appel de check_rows avec pour paramètre new_board
+            # S'il y a result
+                # Alors retourner result
+        # Retourner le résultat de check_diagonals
+
+    # Définir la méthode is_board_full avec pour paramètre self
+        # Pour row de portée 3
+            # Pour col de portée 3
+                # Si l'élément d'indice row, col de board est égal à "_"
+                    # Alors retourner False
+        # Retourner True
+
+    # Définir la méthode run avec pour paramètre self
+        # Définir une variable turn égale à 0
+        # Définir p1_sign comme "x" si le résultat de randint entre 0 et 1 est 0 sinon "o"
+        # Définir p2_sign comme "o" si p1_sign est "x" sinon "x"
+        # Tant que running
+            # Appeler la méthode player_turn avec comme paramètre p1_sign si turn modulo(%) 2 est égal à 0 sinon p2_sign
+            # Afficher self
+            # Définir une variable winner étant le résultat de l'appel de check_win
+
+            # Si winner
+                # Alors afficher un message de victoire pour le winner
+                # running égal False
+            # Sinon si appeler is_board_full
+                # Alors afficher un message d'égalité
+                # running égal False
+            # Sinon incrémenter turn de 1
+            
+    # Surcharger la méthode __str__ avec pour paramètre self
+        # Définir res comme une chaine de caractères vide
+        # Pour chaque ligne dans le board
+            # Concaténer res et la ligne tel qu'une chaine de caractère et un retour à la ligne
+        # Retourner res
+
+# Si __name__ est égal à "__main__"
+    # Alors créer une instance de la classe TicTacToe tel que game
+    # Appeler la méthode run sur l'objet game
+
+FIN
