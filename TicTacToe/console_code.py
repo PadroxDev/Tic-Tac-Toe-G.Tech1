@@ -34,8 +34,8 @@ class TicTacToe:
             return self.board[0][2]
         return 0
 
-    def check_win(self):
-        for new_board in [self.board, transpose(self.board)]:
+    def check_win(self, board):
+        for new_board in [board, transpose(board)]:
             result = self.check_rows(new_board)
             if result: return result
         return self.check_diagonals()
@@ -51,10 +51,13 @@ class TicTacToe:
         turn = 0
         p1_sign = 'x' if randint(0, 1) else 'o'
         p2_sign = 'o' if p1_sign == 'x' else 'x'
+        my_ai = AI(p2_sign)
         while self.running:
-            self.player_turn(p1_sign if turn % 2 == 0 else p2_sign)
-            print(self)
-            winner = self.check_win()
+            if (turn % 2 == 0):
+                self.player_turn(p1_sign if turn % 2 == 0 else p2_sign)
+            else:
+                my_ai.minimax(self.board, my_ai.sign, self.check_win)
+            winner = self.check_win(self.board)
             
             if winner:
                 print(f"{winner} won!")
