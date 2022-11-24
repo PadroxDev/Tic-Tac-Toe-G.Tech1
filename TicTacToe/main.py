@@ -36,13 +36,14 @@ class AI(Player):
 
 # This class represent each cell of the game board
 class BoardSlot:
-    def __init__(self, x:int, y:int, parent_surf:tk.Frame, get_current_player_sign, update_turn)->None:
+    def __init__(self, x:int, y:int, parent_surf:tk.Frame, get_current_player_sign, update_turn, custom_names)->None:
         self.sign = 'blank'
         self.x = x
         self.y = y
         self.parent_surf = parent_surf
         self.get_current_player_sign = get_current_player_sign
         self.update_turn = update_turn
+        self.custom_names = custom_names
         self.update_images()
         self.init_button()
 
@@ -52,9 +53,13 @@ class BoardSlot:
 
     # Update the images based on the slot sign
     def update_images(self):
-        self.default_img = self.load_image(f"images/{self.sign}_default.png")
-        self.hover_img = self.load_image(f"images/{self.sign}_hover.png")
-        if (self.sign != 'blank'): self.validated_img = self.load_image(f"images/{self.sign}_validated.png")
+        loaded_name = self.sign
+        if (self.sign != 'blank' and self.custom_names[self.sign] != None):
+            loaded_name = self.custom_names[self.sign]
+
+        self.default_img = self.load_image(f"images/{loaded_name}_default.png")
+        self.hover_img = self.load_image(f"images/{loaded_name}_hover.png")
+        if (self.sign != 'blank'): self.validated_img = self.load_image(f"images/{loaded_name}_validated.png")
     
     # Initialize the button
     def init_button(self):
@@ -176,7 +181,20 @@ class App(tk.Tk):
 
     # Handle the board generation
     def generate_board(self)->list:
-        board = [[BoardSlot(row, col, self.board_frame, self.get_current_player_sign, self.update_turn) for col in range(3)] for row in range(3)]
+        custom_names = {'cross' : None, 'circle' : None}
+        if (self.player1.name in ['banana', 'monkey', 'jungle']):
+            if (self.player1.order == 1):
+                custom_names['cross'] = self.player1.name
+            else:
+                custom_names['circle'] = self.player1.name
+
+        if (self.player2.name in ['banana', 'monkey', 'jungle']):
+            if (self.player2.order == 1):
+                custom_names['cross'] = self.player2.name
+            else:
+                custom_names['circle'] = self.player2.name
+        
+        board = [[BoardSlot(row, col, self.board_frame, self.get_current_player_sign, self.update_turn, custom_names) for col in range(3)] for row in range(3)]
         return board
 
     # Enable or Disable the given graphic element
@@ -203,6 +221,7 @@ class App(tk.Tk):
     def get_sign(self, player:Player)->str:
         return 'cross' if player.order == 1 else 'circle'
 
+    # Return the current turn player
     def get_current_player(self)->Player:
         if (self.turn % 2 == 0):
             return self.player1 if self.player1.order == 1 else self.player2
