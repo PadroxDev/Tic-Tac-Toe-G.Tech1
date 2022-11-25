@@ -1,3 +1,4 @@
+import math
 import tkinter as tk
 
 from PIL import ImageTk, Image
@@ -15,25 +16,108 @@ class Player:
     def change_order(self, order:int)->None:
         self.order = order
 
-    def play(self):
+    def play(self, board:list)->list:
         print("Playing...")
+        return board
 
 # This class is deriving from Player, for Human Behaviour
 class Human(Player):
     def __init__(self, name:str):
         super().__init__(name)
 
-    def play(self):
+    def play(self, board:list)->list:
         print("Human's playing")
+        return board
 
 # This class is deriving from Player, for AI Behaviour
 class AI(Player):
-    def __init__(self, name:str):
+    def __init__(self, name:str, get_player_sign, is_board_full):
         super().__init__(name)
+        self.get_player_sign = get_player_sign
+        self.is_board_full = is_board_full
 
-    def play(self):
+    def play(self, board:list)->list:
         print("AI's playing")
-
+        return self.best_move(board)
+       
+    # This method loop through each rows of the given board and return if a player won
+    def check_rows(self, current_board:list):
+        for row in current_board:
+            res = set() # A set is similar than a list but cannot contain doubles
+            for slot in row:
+                res.add(slot.sign)
+            if (len(res) == 1 and row[0].sign != 'blank'):
+                return row[0].sign
+        return 0
+    
+    # This method loop through both diagonals of the board and return if a player won
+    def check_diagonals(self, current_board:list):
+        # From top left to bottom right
+        if (len(set([current_board[i][i].sign for i in range(3)])) == 1 and current_board[0][0].sign != 'blank'):
+            return current_board[0][0].sign
+        # From top right to bottom left
+        if (len(set([current_board[i][3-i-1].sign for i in range(3)])) == 1 and current_board[0][2].sign != 'blank'):
+            return current_board[0][2].sign
+        return 0
+    
+    # Check the rows, columns and diagonals and return the winner's sign
+    def check_win(self, current_board:list):
+        # transposition to check rows, then columns
+        for new_board in [current_board, transpose(current_board)]:
+            result = self.check_rows(new_board)
+            if (result): return result
+        return self.check_diagonals(current_board)
+     
+    def best_move(self, board:list):
+        self.scores = {}
+        self.scores['cross'] = 1 if self.get_player_sign(self) == 'cross' else -1
+        self.scores['circle'] = -1 if self.get_player_sign(self) == 'cross' else 1
+        self.scores['tie'] = 0
+        best_score = -math.inf
+        move = None
+        current_sign = self.get_player_sign(self)
+        for row in range(3):
+            for col in range(3):
+                # Is the Slot available?
+                if (board[row][col].sign == 'blank'):
+                    board[row][col].sign = current_sign
+                    score = self.minimax(board, 0, True, current_sign)
+                    board[row][col].sign = 'blank'
+                    if (score > best_score):
+                        best_score = score
+                        move = (row, col)
+        board[move[0]][move[1]].on_click("IA")
+        return board
+    
+    def minimax(self, board:list, depth:int, is_maximizing:bool, sign):
+        result = self.check_win(board)
+        if (result):
+            if (is_maximizing):
+                return self.scores[result] - depth
+            else:
+                return self.scores[result] + depth
+        
+        if (is_maximizing):
+            best_score = -math.inf
+            for row in range(3):
+                for col in range(3):
+                    # Is the Slot available?
+                    if (board[row][col].sign == 'blank'):
+                        board[row][col].sign = sign
+                        best_score = max(best_score, self.minimax(board, depth+1, not is_maximizing, sign))
+                        board[row][col].sign = 'blank'
+            return best_score
+        else:
+            best_score = math.inf
+            for row in range(3):
+                for col in range(3):
+                    # Is the Slot available?
+                    if (board[row][col].sign == 'blank'):
+                        board[row][col].sign = 'circle' if sign == 'cross' else 'cross'
+                        best_score = min(best_score, self.minimax(board, depth+1, not is_maximizing, sign))
+                        board[row][col].sign = 'blank'
+            return best_score
+    
 # This class represent each cell of the game board
 class BoardSlot:
     def __init__(self, x:int, y:int, parent_surf:tk.Frame, get_current_player_sign, update_turn, custom_names)->None:
@@ -81,7 +165,10 @@ class BoardSlot:
         self.disconnect_bindings() # One time click
         self.sign = self.get_current_player_sign()
         self.update_images()
-        self.button.config(image=self.hover_img)
+        if (_ == 'IA'):
+            self.button.config(image=self.default_img)
+        else:
+            self.button.config(image=self.hover_img)
         self.update_turn()
 
     # On hover enter action
@@ -142,8 +229,8 @@ class App(tk.Tk):
         if (name1 == ""): name1 = "Player 1"
         if (name2 == ""): name2 = "Player 2"
         self.player1 = Human(name1)
-        if (self.is_ai_result):
-            self.player2 = AI(name2)
+        if (self.is_ai_result.get()):
+            self.player2 = AI(name2, self.get_sign, self.is_board_full)
         else:
             self.player2 = Human(name2)
         self.setup_static_game_window()
@@ -178,6 +265,8 @@ class App(tk.Tk):
         self.game_state_label = tk.Label(self, text=f"{self.get_current_player().name} 's turn!", fg="#f5f6fa", bg="#00a8ff", font=("Arial", 18))
         self.game_state_label.pack()
         self.rematch_button = tk.Button(self, text="REMATCH", font=("Arial Black", 20), fg="White", bg="#44bd32", command=self.restart_game)
+        current_player = self.get_current_player()
+        self.board = current_player.play(self.board)
 
     # Handle the board generation
     def generate_board(self)->list:
@@ -240,7 +329,7 @@ class App(tk.Tk):
                     return False
         return True
 
-    # This method loop through each rows of the given board and return if a player won
+    # This method loop through each rows of the given board and return if a player won, REAL ONE
     def check_rows(self, current_board:list):
         for row in current_board:
             res = set() # A set is similar than a list but cannot contain doubles
@@ -253,7 +342,7 @@ class App(tk.Tk):
                 return row[0].sign
         return 0
     
-    # This method loop through both diagonals of the board and return if a player won
+    # This method loop through both diagonals of the board and return if a player won, REAL ONE
     def check_diagonals(self, current_board:list):
         # From top left to bottom right
         if (len(set([current_board[i][i].sign for i in range(3)])) == 1 and current_board[0][0].sign != 'blank'):
@@ -297,6 +386,8 @@ class App(tk.Tk):
         else: # New turn
             self.turn += 1
             self.update_game_state(f"{self.get_current_player().name}'s turn!")
+            current_player = self.get_current_player()
+            self.board = current_player.play(self.board)
 
     # ----------------------
     # -----> GRAPHICS <-----
